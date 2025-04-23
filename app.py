@@ -1,4 +1,5 @@
 from flask import Flask, render_template, request, session,redirect, url_for, flash
+from functools import wraps
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -6,6 +7,15 @@ from werkzeug.security import generate_password_hash, check_password_hash
 app = Flask(__name__)
 
 app.secret_key = 'mykey@9696'
+
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'username' not in session:
+            flash("you must be logged in to access this page", "warning")
+            return redirect(url_for('home'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 def init_db():
     conn = sqlite3.connect('users.db')
@@ -66,13 +76,9 @@ def logout():
     return redirect(url_for('home'))
         
 @app.route('/dashboard')
+@login_required
 def dashboard():
-    if 'username' in session:
-        return f'''<h2>Welcome {session["username"]}!</h2>
-        <a href="/logout">Logout</a>
-        '''
-    else:
-        return redirect(url_for('home'))
+    return render_template('dashboard.html', username=session['username'])
     
 @app.route('/register', methods=['GET', 'POST'])
 def register():
@@ -81,6 +87,10 @@ def register():
         password = request.form.get('password')
         
         hashed_password = generate_password_hash(password)
+        
+        if not username or not password:
+            flash("All fields are required", "danger")
+            return redirect(url_for('register'))
         
         conn = sqlite3.connect('users.db')
         cursor = conn.cursor()
