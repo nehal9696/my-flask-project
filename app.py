@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, session,redirect, url_for
+from flask import Flask, render_template, request, session,redirect, url_for, flash
 import sqlite3
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -49,18 +49,28 @@ def login():
         
         if result and check_password_hash(result[0],password):
             session['username'] = username
+            flash("Login Successful!", "success")
             return redirect(url_for('dashboard'))
         else:
-            return 'Invalid credentials, Try again.'
+            flash("Invalid credentials", "danger")
+            return redirect(url_for('home'))
     except sqlite3.IntegrityError:
         return 'Database error occurred.'
     finally:
         conn.close()
         
+@app.route('/logout')
+def logout():
+    session.pop('username', None)
+    flash("You have been Logged out", "info")
+    return redirect(url_for('home'))
+        
 @app.route('/dashboard')
 def dashboard():
     if 'username' in session:
-        return f'Hello, {session['username']}, Welcome to your dashboard!'
+        return f'''<h2>Welcome {session["username"]}!</h2>
+        <a href="/logout">Logout</a>
+        '''
     else:
         return redirect(url_for('home'))
     

@@ -4,6 +4,15 @@
     <title>Login</title>
 </head>
 <body>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
     <h2>Login</h2>
     <form method="POST" action="/login">
         <label>Username:</label><br>
