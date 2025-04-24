@@ -1,20 +1,25 @@
 from flask import Flask, render_template, request, session,redirect, url_for, flash
 from functools import wraps
+from datetime import timedelta
 import sqlite3
+import re
 from werkzeug.security import generate_password_hash, check_password_hash
 
 
 app = Flask(__name__)
 
 app.secret_key = 'mykey@9696'
+app.permanent_session_lifetime = timedelta(seconds=10)
 
-def login_required(f):
-    @wraps(f)
+email_regex = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+
+def login_required(view_func):
+    @wraps(view_func)
     def decorated_function(*args, **kwargs):
         if 'username' not in session:
-            flash("you must be logged in to access this page", "warning")
+            flash("Session Expired. Please Login again!", "warning")
             return redirect(url_for('home'))
-        return f(*args, **kwargs)
+        return view_func(*args, **kwargs)
     return decorated_function
 
 def init_db():
@@ -24,20 +29,11 @@ def init_db():
                 CREATE TABLE IF NOT EXISTS users(
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     username TEXT NOT NULL UNIQUE,
+                    email TEXT NOT NULL UNIQUE,
                     password TEXT NOT NULL
                 )
                 ''')
     conn.commit()
-    conn.close()
-    
-def insert_dummy_user():
-    conn = sqlite3.connect('users.db')
-    cursor = conn.cursor()
-    try:
-        cursor.execute("INSERT INTO users (username, password) VALUES (?,?)",("admin","12345"))
-        conn.commit()
-    except sqlite3.IntegrityError:
-        pass
     conn.close()
 
 @app.route('/')
@@ -50,6 +46,7 @@ def home():
 def login():
     username = request.form.get('username')
     password = request.form.get('password')
+    remember = request.form.get('remember')
     
     conn = sqlite3.connect('users.db')
     cursor = conn.cursor()
@@ -58,7 +55,12 @@ def login():
         result = cursor.fetchone()
         
         if result and check_password_hash(result[0],password):
+            if remember:
+                session.permanent = True
+            else:
+                session.permanent = False
             session['username'] = username
+            
             flash("Login Successful!", "success")
             return redirect(url_for('dashboard'))
         else:
@@ -83,23 +85,28 @@ def dashboard():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
+        email = request.form.get('email')
         username = request.form.get('username')
         password = request.form.get('password')
         
-        hashed_password = generate_password_hash(password)
-        
-        if not username or not password:
+        if not email or not username or not password:
             flash("All fields are required", "danger")
             return redirect(url_for('register'))
         
+        if not re.match(email_regex, email):
+            flash("Please enter a valid email address", "danger")
+            return redirect(url_for('register'))
+        
+        hashed_password = generate_password_hash(password)
         conn = sqlite3.connect('users.db')
         cursor = conn.cursor()
         
         try:
-            cursor.execute("INSERT INTO users (username, password) values (?, ?)", (username, hashed_password))
+            cursor.execute("INSERT INTO users (email, username, password) values (?, ?, ?)", (email, username, hashed_password))
             conn.commit()
             conn.close()
-            return f'user {username} registered successfully!'
+            flash(f'user {username} registered successfully! Please Log in', "success")
+            return redirect(url_for('home'))
         except sqlite3.IntegrityError:
             return 'Username already exists. Try a different one.'
         finally:
@@ -109,5 +116,4 @@ def register():
     
 if __name__ == '__main__':
     init_db()
-    insert_dummy_user()
     app.run(debug=True)
