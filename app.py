@@ -3,15 +3,27 @@ from functools import wraps
 from datetime import timedelta
 import sqlite3
 import re
+from itsdangerous import URLSafeTimedSerializer
 from werkzeug.security import generate_password_hash, check_password_hash
+from flask_mail import Mail, Message
 
 
 app = Flask(__name__)
 
 app.secret_key = 'mykey@9696'
+s = URLSafeTimedSerializer(app.secret_key)
 app.permanent_session_lifetime = timedelta(seconds=10)
 
 email_regex = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+
+app.config['MAIL_SERVER'] = 'smtp.gmail.com'
+app.config['MAIL_PORT'] = 587
+app.config['MAIL_USE_TLS'] = True
+app.config['MAIL_USERNAME'] = 'geek.nehal@gmail.com'
+app.config['MAIL_PASSWORD'] = 'tysg jrbi xpjz zniq'
+app.config['MAIL_DEFAULT_SENDER'] = 'nehalkhan45@rediffmail.com'
+
+mail = Mail(app)
 
 def login_required(view_func):
     @wraps(view_func)
@@ -42,8 +54,11 @@ def home():
         return redirect(url_for('dashboard'))
     return render_template('login.html')
 
-@app.route('/login', methods=['POST'])
+@app.route('/login', methods=['GET','POST'])
 def login():
+    if request.method == 'GET':
+        return render_template('login.html')
+    
     username = request.form.get('username')
     password = request.form.get('password')
     remember = request.form.get('remember')
@@ -122,9 +137,45 @@ def not_found_error(error):
 def internal_error(error):
     return render_template('500.html'), 500
 
-@app.route('/boom')
-def boom():
-    raise Exception("Testing 500 Error")
+@app.route('/forgot', methods=['GET', 'POST'])
+def forgot_password():
+    if request.method == 'POST':
+        email = request.form.get('email')
+        token  = s.dumps(email, salt='password_reset_sault')
+        reset_link = url_for('reset_password', token=token, _external=True)
+        
+        msg = Message('Password Reset Request', recipients=[email])
+        msg.body = f'Click the link to reset your password: {reset_link}'
+        try:
+            mail.send(msg)
+            flash('Password reset link has been sent to your email', 'info')
+        except Exception as e:
+            flash('Failed to send email. Check your mail setting', 'danger')
+            print("Email send Error:",e)
+        return redirect(url_for('login'))
+    return render_template('forgot.html')
+
+@app.route('/reset/<token>', methods=['GET', 'POST'])
+def reset_password(token):
+    try:
+        email = s.loads(token, salt='password_reset_sault', max_age=3600)
+    except Exception:
+        flash('The reset link is invalid or expired', 'danger')
+        return redirect(url_for('forgot_password'))
+    
+    if request.method == 'POST':
+        new_password = request.form.get('password')
+        hashed = generate_password_hash(new_password)
+        
+        conn = sqlite3.connect('users.db')
+        cursor = conn.cursor()
+        cursor.execute("UPDATE users SET password = ? WHERE email = ?", (hashed, email))
+        conn.commit()
+        conn.close()
+        
+        flash('Your password has benn updated! Please login', 'success')
+        return redirect(url_for('login'))
+    return render_template('reset.html', token=token)
     
 if __name__ == '__main__':
     init_db()
