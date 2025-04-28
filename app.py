@@ -165,6 +165,11 @@ def reset_password(token):
     
     if request.method == 'POST':
         new_password = request.form.get('password')
+        
+        if not new_password:
+            flash('Please enter a new password','warning')
+            return redirect(request.url)
+        
         hashed = generate_password_hash(new_password)
         
         conn = sqlite3.connect('users.db')
@@ -173,9 +178,24 @@ def reset_password(token):
         conn.commit()
         conn.close()
         
-        flash('Your password has benn updated! Please login', 'success')
+        flash('Your password has been updated! Please login', 'success')
         return redirect(url_for('login'))
     return render_template('reset.html', token=token)
+
+@app.route('/profile')
+@login_required
+def profile():
+    username = session.get('username')
+    
+    conn = sqlite3.connect('users.db')
+    cursor = conn.cursor()
+    cursor.execute("SELECT email FROM users WHERE username = ?", (username,))
+    result = cursor.fetchone()
+    conn.close()
+    
+    email = result[0] if result else "Email not found"
+    
+    return render_template('profile.html', username=username, email=email)
     
 if __name__ == '__main__':
     init_db()
