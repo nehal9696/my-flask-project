@@ -2,68 +2,110 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}UnspokenWorld{% endblock %}</title>
 
     <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
 
-    <!-- favicon -->
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
-
+    <style>
+      body {
+        background-color: #121212;
+        color: #ffffff;
+      }
+      /* .hero {
+        background: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), 
+                    url('{{ url_for('static', filename='background.jpg') }}') no-repeat center center;
+        background-size: cover;
+        height: 90vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+      } */
+      .hero h1 {
+        font-size: 4rem;
+        font-weight: bold;
+        text-align: center;
+      }
+      .hero p {
+        font-size: 1.5rem;
+        margin-top: 1rem;
+        text-align: center;
+      }
+    </style>
 </head>
+
 <body>
 
-    <!-- Navbar -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-        <div class="container">
-          <a class="navbar-brand" href="/">
-            <img src="{{ url_for('static', filename='logo.png') }}" alt="UnspokenWorld" style="height: 40px;">
-            UnspokenWorld
-          </a>
-      
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-            <span class="navbar-toggler-icon"></span>
-          </button>
-      
-          <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav ms-auto">
-              <li class="nav-item">
-                <a class="nav-link" href="/">Home</a>
-              </li>
-              {% if 'username' in session %}
-              <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
-              </li>
-              {% else %}
-              <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('login') }}">Login</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link" href="{{ url_for('register') }}">Register</a>
-              </li>
-              {% endif %}
-            </ul>
-          </div>
-        </div>
-      </nav>
-            
-
-    <div class="container mt-4">
-        <!-- Flash messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            {% set category, message = messages[0] %}
-            <div class="alert alert-{{ category }}">{{ message }}</div>
-          {% endif %}
-        {% endwith %}
-
-        {% block content %}{% endblock %}
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <img src="{{ url_for('static', filename='logo.png') }}" alt="UnspokenWorld" style="height: 70px;">
+      UnspokenWorld
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="navbarNav">
+      <ul class="navbar-nav ms-auto">
+        {% if 'username' in session %}
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+        </li>
+        {% else %}
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{ url_for('register') }}">Register</a>
+        </li>
+        {% endif %}
+      </ul>
     </div>
+  </div>
+</nav>
 
-    <!-- Bootstrap Bundle JS -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- Flash messages -->
+<div class="container mt-3">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      {% for category, message in messages %}
+        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+          {{ message }}
+          <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+      {% endfor %}
+    {% endif %}
+  {% endwith %}
+</div>
+
+<!-- Hero Section -->
+{% if request.endpoint == 'home' %}
+<div class="hero">
+    <div>
+        <h1>Welcome to UnspokenWorld</h1>
+        <p>Explore the unexplored, reveal the hidden.</p>
+        {% if 'username' not in session %}
+        <!-- <a href="{{ url_for('register') }}" class="btn btn-primary mt-4">Get Started</a> -->
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Page Content -->
+<div class="container mt-5">
+    {% block content %}{% endblock %}
+</div>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

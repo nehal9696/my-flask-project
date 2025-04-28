@@ -50,9 +50,9 @@ def init_db():
 
 @app.route('/')
 def home():
-    if 'username' in session:
-        return redirect(url_for('dashboard'))
-    return render_template('login.html')
+    # if 'username' in session:
+    #     return redirect(url_for('dashboard'))
+    return render_template('home.html')
 
 @app.route('/login', methods=['GET','POST'])
 def login():
@@ -80,7 +80,7 @@ def login():
             return redirect(url_for('dashboard'))
         else:
             flash("Invalid credentials", "danger")
-            return redirect(url_for('home'))
+            return redirect(url_for('login'))
     except sqlite3.IntegrityError:
         return 'Database error occurred.'
     finally:
@@ -121,7 +121,7 @@ def register():
             conn.commit()
             conn.close()
             flash(f'user {username} registered successfully! Please Log in', "success")
-            return redirect(url_for('home'))
+            return redirect(url_for('login'))
         except sqlite3.IntegrityError:
             return 'Username already exists. Try a different one.'
         finally:
@@ -199,4 +199,4 @@ def profile():
     
 if __name__ == '__main__':
     init_db()
-    app.run()
+    app.run(debug=True)

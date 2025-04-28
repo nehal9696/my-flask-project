@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Home - UnspokenWorld{% endblock %}
+
+{% block content %}
+<div class="text-center mt-5">
+    <h2>About UnspokenWorld</h2>
+    <p class="lead mt-3">
+        UnspokenWorld is a mysterious space where hidden stories come alive.
+    </p>
+    {% if 'username' not in session %}
+    <a href="{{ url_for('register') }}" class="btn btn-outline-primary mt-4">Join Now</a>
+    {% else %}
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-success mt-4">Go to Dashboard</a>
+    {% endif %}
+</div>
+{% endblock %}
